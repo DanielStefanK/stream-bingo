@@ -107,20 +107,15 @@ func OAuthCallback(ctx *gin.Context) {
 		var rs *Response
 		if err.Error() == auth.ErrInvalidProvider {
 			rs = newErrorResponse(ErrAuthenticatingUser, "invalid provider", nil)
-		}
-		if err.Error() == auth.ErrMissingCode {
+		} else if err.Error() == auth.ErrMissingCode {
 			rs = newErrorResponse(ErrMissingValue, "missing code", map[string]interface{}{"fieldname": "code"})
-		}
-		if err.Error() == auth.ErrTokenExchangeFailed {
+		} else if err.Error() == auth.ErrTokenExchangeFailed {
 			rs = newErrorResponse(ErrAuthenticatingUser, "could not perform code exchange", nil)
-		}
-		if err.Error() == auth.ErrFailedToGetUser {
+		} else if err.Error() == auth.ErrFailedToGetUser {
 			rs = newErrorResponse(ErrAuthenticatingUser, "could not fetch data from user provider", nil)
-		}
-		if err.Error() == auth.ErrCreationFailed {
+		} else if err.Error() == auth.ErrCreationFailed {
 			rs = newErrorResponse(ErrInternal, "failed to create user", nil)
-		}
-		if err.Error() == auth.ErrJWTSigningFailed {
+		} else if err.Error() == auth.ErrJWTSigningFailed {
 			rs = newErrorResponse(ErrInternal, "failed to create Token", nil)
 		} else {
 			rs = newErrorResponse(ErrInternal, "internal error", nil)
