@@ -4,7 +4,7 @@ import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import 'primeicons/primeicons.css'
-import './style.css'
+import './style.scss'
 import { definePreset } from '@primeuix/themes'
 
 const NoirX = definePreset(Aura, {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import useDarkMode from './composables/useDarkMode'
-import Login from './pages/Login.vue'
+import Login from './pages/LoginPage.vue'
 
 useDarkMode()
 </script>
