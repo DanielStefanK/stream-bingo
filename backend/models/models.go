@@ -11,7 +11,7 @@ type User struct {
 	Email       string `gorm:"size:255;uniqueIndex;not null"`
 	Password    string `gorm:"size:255"`
 	Provider    string `gorm:"size:100;default:'local'"`
-	ProviderID  string `gorm:"size:255;uniqueIndex"`
+	ProviderID  string `gorm:"size:255;"`
 	AvatarURL   string `gorm:"size:512"`
 	AccessToken string `gorm:"size:512"`
 }

@@ -31,7 +31,7 @@ func Login(ctx *gin.Context) {
 		ctx.JSON(500, newErrorResponse(ErrInternal, "could not authenticate user", nil))
 		return
 	}
-	ctx.JSON(200, LoginResponse{
+	ctx.JSON(200, newSuccessResponse(LoginResponse{
 		Token: token,
 		User: User{
 			ID:        user.ID,
@@ -40,7 +40,7 @@ func Login(ctx *gin.Context) {
 			AvatarURL: user.AvatarURL,
 			Provider:  user.Provider,
 		},
-	})
+	}))
 }
 
 func Register(ctx *gin.Context) {
@@ -62,7 +62,7 @@ func Register(ctx *gin.Context) {
 		ctx.JSON(500, newErrorResponse(ErrInternal, "could not authenticate user", nil))
 		return
 	}
-	ctx.JSON(200, LoginResponse{
+	ctx.JSON(200, newSuccessResponse(LoginResponse{
 		Token: token,
 		User: User{
 			ID:        user.ID,
@@ -71,25 +71,23 @@ func Register(ctx *gin.Context) {
 			AvatarURL: user.AvatarURL,
 			Provider:  user.Provider,
 		},
-	})
-}
-func logout(ctx *gin.Context) {
-
+	}))
 }
 func OAuthRedirect(ctx *gin.Context) {
+	config.ReloadConfig()
 	providerName := ctx.Param("provider")
 	log.Printf("OAuth redirect request for provider: %s", providerName)
 
 	// Prüfen, ob der Anbieter existiert
-	provider, exists := config.GetConfig().OAuth.Providers[providerName]
-	if !exists {
+	provider, exists := auth.ProviderFromConfig(providerName)
+	if exists != nil {
 		log.Printf("Invalid OAuth provider: %s", providerName)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid provider"})
 		return
 	}
 
 	// Generiere die OAuth-URL
-	url := provider.Config.AuthCodeURL("random-state")
+	url := provider.AuthCodeURL("random-state")
 	log.Printf("Redirecting user to %s OAuth URL: %s", providerName, url)
 
 	// Weiterleitung zur OAuth-Login-Seite
@@ -125,7 +123,7 @@ func OAuthCallback(ctx *gin.Context) {
 		return
 	}
 
-	newSuccessResponse(LoginResponse{
+	resp := newSuccessResponse(LoginResponse{
 		Token: code,
 		User: User{
 			ID:        user.ID,
@@ -135,6 +133,7 @@ func OAuthCallback(ctx *gin.Context) {
 			Provider:  user.Provider,
 		},
 	})
+	ctx.JSON(http.StatusOK, resp)
 }
 
 type User struct {

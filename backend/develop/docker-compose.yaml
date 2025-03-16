@@ -1,5 +1,5 @@
 #postgres docker compose for development
-version: '3.1'
+version: "3.1"
 services:
   postgres:
     image: postgres:12
@@ -13,12 +13,8 @@ services:
       #init db
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-
-  keycloak:
-    image: jboss/keycloak
-    container_name: keycloak
-    environment:
-      KEYCLOAK_USER: admin
-      KEYCLOAK_PASSWORD: admin
+  sqladminer:
+    image: adminer
+    container_name: sqladminer
     ports:
-      - "8080:8080"
+      - "1338:8080"

@@ -1,12 +1,13 @@
 <script setup lang="ts">
+import { Toast } from 'primevue'
 import useDarkMode from './composables/useDarkMode'
-import Login from './pages/LoginPage.vue'
 
 useDarkMode()
 </script>
 
 <template>
-  <Login />
+  <Toast />
+  <RouterView />
 </template>
 
 <style scoped></style>

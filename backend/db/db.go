@@ -21,9 +21,10 @@ func Init() {
 	dsn := "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC"
 	dsn = fmt.Sprintf(dsn, dbConfig.Host, dbConfig.User, dbConfig.Password, dbConfig.Name, dbConfig.Port)
 
-	DB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	localdb, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
+	DB = localdb
 
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
@@ -43,6 +44,7 @@ func Init() {
 	if err != nil {
 		log.Fatalf("failed to auto migrate models: %v", err)
 	}
+
 }
 
 func GetDB() *gorm.DB {

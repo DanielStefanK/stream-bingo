@@ -2,16 +2,15 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/DanielStefanK/stream-bingo/config"
 	"github.com/DanielStefanK/stream-bingo/models"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 )
 
@@ -111,13 +110,13 @@ func GenerateJWT(user *models.User) (string, error) {
 func OAuthLoginRedirect(providerName string) (string, error) {
 	log.Printf("OAuth login request for provider: %s", providerName)
 
-	provider, exists := conf.OAuth.Providers[providerName]
-	if !exists {
+	provider, exists := ProviderFromConfig(providerName)
+	if exists != nil {
 		log.Printf("Invalid OAuth provider: %s", providerName)
 		return "", errors.New(ErrInvalidProvider)
 	}
 
-	url := provider.Config.AuthCodeURL("random-state")
+	url := provider.AuthCodeURL("random-state")
 	log.Printf("Redirecting user to %s OAuth URL: %s", providerName, url)
 	return url, nil
 }
@@ -126,8 +125,8 @@ func OAuthLoginRedirect(providerName string) (string, error) {
 func OAuthCallback(providerName string, code string, db *gorm.DB) (string, *models.User, error) {
 	log.Printf("OAuth callback received for provider: %s", providerName)
 
-	provider, exists := conf.OAuth.Providers[providerName]
-	if !exists {
+	provider, exists := ProviderFromConfig(providerName)
+	if exists != nil {
 		log.Printf("Invalid OAuth provider: %s", providerName)
 		return "", nil, errors.New(ErrInvalidProvider)
 	}
@@ -138,22 +137,22 @@ func OAuthCallback(providerName string, code string, db *gorm.DB) (string, *mode
 	}
 
 	log.Printf("Exchanging code for token with provider: %s", providerName)
-	token, err := provider.Config.Exchange(context.Background(), code)
+	token, err := provider.Exchange(context.Background(), code)
 	if err != nil {
 		log.Printf("Error exchanging code for token (provider: %s): %v", providerName, err)
 		return "", nil, errors.New(ErrTokenExchangeFailed)
 	}
 
 	log.Printf("Fetching user info from provider: %s", providerName)
-	userInfo, err := fetchOAuthUser(provider.UserURL, token.AccessToken)
+	userInfo, err := fetchOAuthUser(providerName, token.AccessToken)
 	if err != nil {
 		log.Printf("Error fetching user info (provider: %s): %v", providerName, err)
 		return "", nil, errors.New(ErrFailedToGetUser)
 	}
 
-	log.Printf("User info retrieved: %+v", userInfo)
+	log.Printf("User info retrieved")
 
-	user, err := CreateOrGetOAuthUser(db, providerName, userInfo["id"], userInfo["name"], userInfo["email"], userInfo["avatar_url"])
+	user, err := CreateOrGetOAuthUser(db, providerName, userInfo.ID, userInfo.Name, userInfo.Email, userInfo.AvatarURL)
 	if err != nil {
 		log.Printf("Error creating or retrieving user (provider: %s): %v", providerName, err)
 		return "", nil, errors.New(ErrCreationFailed)
@@ -172,33 +171,15 @@ func OAuthCallback(providerName string, code string, db *gorm.DB) (string, *mode
 }
 
 // fetchOAuthUser fetches user info from an OAuth provider
-func fetchOAuthUser(userURL, accessToken string) (map[string]string, error) {
-	log.Printf("Fetching user info from URL: %s", userURL)
-
-	req, _ := http.NewRequest("GET", userURL, nil)
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Error making request to %s: %v", userURL, err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var userInfo map[string]string
-	err = json.NewDecoder(resp.Body).Decode(&userInfo)
-	if err != nil {
-		log.Printf("Error decoding user info JSON from %s: %v", userURL, err)
-		return nil, err
-	}
-
-	log.Printf("Successfully fetched user info from %s", userURL)
-	return userInfo, nil
+func fetchOAuthUser(providerName, accessToken string) (UserInfo, error) {
+	info, _ := GetUserInfoFromProvider(providerName, accessToken)
+	return info, nil
 }
 
 func CreateOrGetOAuthUser(db *gorm.DB, provider, providerID, name, email, avatarURL string) (*models.User, error) {
 	var user models.User
+
+	log.Printf("Creating or getting user: %s, %s", provider, providerID)
 
 	if err := db.Where("provider = ? AND provider_id = ?", provider, providerID).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -211,7 +192,7 @@ func CreateOrGetOAuthUser(db *gorm.DB, provider, providerID, name, email, avatar
 			}
 			if err := db.Create(&user).Error; err != nil {
 				log.Println("Error creating user")
-				return nil, err
+				db.Rollback()
 			}
 		} else {
 			log.Println("Error accessing user db")
@@ -231,4 +212,27 @@ func CheckPassword(hashedPassword, plainPassword string) error {
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return string(hashedPassword), err
+}
+
+func ProviderFromConfig(providerName string) (oauth2.Config, error) {
+	config.ReloadConfig()
+	conf = config.GetConfig()
+	provider, exists := conf.OAuth.Providers[providerName]
+	if !exists {
+		log.Printf("Invalid OAuth provider: %s", providerName)
+		return oauth2.Config{}, errors.New(ErrInvalidProvider)
+	}
+
+	providerConfig := oauth2.Config{
+		ClientID:     provider.ClientID,
+		ClientSecret: provider.ClientSecret,
+		RedirectURL:  provider.Endpoint.RedirectURL,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  provider.Endpoint.AuthURL,
+			TokenURL: provider.Endpoint.TokenURL,
+		},
+		Scopes: provider.Scopes,
+	}
+
+	return providerConfig, nil
 }

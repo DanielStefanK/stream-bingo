@@ -1,13 +1,19 @@
 package config
 
 import (
+	"log"
 	"os"
 
-	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v2"
 )
 
 var config *Config
+
+var configPath string;
+
+func SetConfigPath(path string) {
+	configPath = path
+}
 
 // Config struct for server, database, oauth and jwt configuration
 func GetConfig() *Config {
@@ -15,8 +21,10 @@ func GetConfig() *Config {
 		return config
 	}
 
-	config, err := LoadConfig("config.yml")
+	config, err := LoadConfig(configPath)
 	if err != nil {
+		log.Println("Error loading config file", err)
+		log.Println(configPath)
 		return nil
 	}
 
@@ -24,7 +32,7 @@ func GetConfig() *Config {
 }
 
 func ReloadConfig() (*Config, error) {
-	config, err := LoadConfig("config.yml")
+	config, err := LoadConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +66,15 @@ type Config struct {
 
 // OAuthProvider config for multiple providers
 type OAuthProvider struct {
-	Config  *oauth2.Config
-	UserURL string
+	ClientID     string   `yaml:"client_id"`
+	ClientSecret string   `yaml:"client_secret"`
+	Endpoint     struct {
+		TokenURL string `yaml:"token_url"`
+		AuthURL  string `yaml:"auth_url"`
+		RedirectURL string `yaml:"redirect_url"`
+	} `yaml:"endpoints"`
+	Scopes       []string `yaml:"scopes"`	
+	UserURL	  string   `yaml:"user_url"`
 }
 
 func LoadConfig(filename string) (*Config, error) {

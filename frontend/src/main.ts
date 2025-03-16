@@ -6,6 +6,9 @@ import Aura from '@primeuix/themes/aura'
 import 'primeicons/primeicons.css'
 import './style.scss'
 import { definePreset } from '@primeuix/themes'
+import { router } from './router'
+import { createPinia } from 'pinia'
+import { ToastService } from 'primevue'
 
 const NoirX = definePreset(Aura, {
   semantic: {
@@ -84,6 +87,8 @@ const NoirX = definePreset(Aura, {
 })
 
 const app = createApp(App)
+const pinia = createPinia()
+app.use(pinia)
 app.use(PrimeVue, {
   theme: {
     preset: NoirX,
@@ -92,5 +97,7 @@ app.use(PrimeVue, {
     },
   },
 })
+app.use(ToastService)
+app.use(router)
 
 app.mount('#app')

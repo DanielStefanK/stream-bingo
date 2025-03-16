@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"time"
 
 	"github.com/DanielStefanK/stream-bingo/config"
+	"github.com/DanielStefanK/stream-bingo/db"
 	"github.com/DanielStefanK/stream-bingo/endpoints"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -16,18 +18,39 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	config.ReloadConfig()
+
+	// config path from parameter
+	configPath := flag.String("config", "config.yml", "path to config file")
+
+	flag.Parse()
+
+	config.SetConfigPath(*configPath)
+	db.Init()
+
 	router := gin.Default()
 
-	auth(router.Group("/auth"))
+	// cors
+	router.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 
-	router.Run(":8080")
+	auth(router.Group("/auth"))
+	router.Run(":" + config.GetConfig().Server.Port)
 }
 
 func auth(router *gin.RouterGroup) {
 	router.POST("/login", endpoints.Login)
 	router.POST("/register", endpoints.Register)
-	router.GET("/oauth/:provider", endpoints.OAuthCallback)
-	router.GET("/oauth/:provider/callback", endpoints.OAuthRedirect)
+	router.GET("/oauth/:provider", endpoints.OAuthRedirect)
+	router.GET("/oauth/:provider/callback", endpoints.OAuthCallback)
 }
 
 func wsRoutes(router *gin.Engine) {
