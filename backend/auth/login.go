@@ -106,6 +106,18 @@ func GenerateJWT(user *models.User) (string, error) {
 	return signedToken, nil
 }
 
+func GetUserIdFromClaims(claims jwt.MapClaims) (uint, error) {
+	userIDFloat, ok := claims["user_id"].(uint)
+	if !ok {
+		log.Println("user_id missing or invalid in token")
+		return 0, errors.New(ErrJWTInvalid)
+	}
+	userID := uint(userIDFloat)
+
+	log.Printf("Extracted user from token: ID=%d", userID)
+	return userID, nil
+}
+
 // OAuthLoginRedirect redirects user to the OAuth provider
 func OAuthLoginRedirect(providerName string) (string, error) {
 	log.Printf("OAuth login request for provider: %s", providerName)

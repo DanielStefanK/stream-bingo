@@ -44,7 +44,7 @@ onMounted(() => {
       <Message severity="error">
         {{ error }}
       </Message>
-      <Button :as="RouterLink" to="/login" class="unstyled">
+      <Button :as="RouterLink" to="/login" class="unstyled back-btn">
         <i class="pi pi-arrow-left"></i>
         back to login</Button
       >
@@ -64,8 +64,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
 }
-.unstyled {
-  text-decoration: none;
+.back-btn {
   margin-top: 1rem;
 }
 </style>

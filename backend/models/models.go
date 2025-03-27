@@ -14,4 +14,6 @@ type User struct {
 	ProviderID  string `gorm:"size:255;"`
 	AvatarURL   string `gorm:"size:512"`
 	AccessToken string `gorm:"size:512"`
+	Active      bool   `gorm:"default:true"`
+	Admin       bool   `gorm:"default:false"`
 }

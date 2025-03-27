@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import MainLayout from '../layout/MainLayout.vue'
+</script>
+
 <template>
-  <h1>Dashboard</h1>
+  <MainLayout>
+    <template #default> test </template>
+  </MainLayout>
 </template>

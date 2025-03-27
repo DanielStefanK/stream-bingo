@@ -7,6 +7,7 @@ import (
 	"github.com/DanielStefanK/stream-bingo/auth"
 	"github.com/DanielStefanK/stream-bingo/config"
 	"github.com/DanielStefanK/stream-bingo/db"
+	"github.com/DanielStefanK/stream-bingo/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,14 +22,14 @@ func Login(ctx *gin.Context) {
 	user, err := auth.AuthenticateLocalUser(db.GetDB(), req.Email, req.Password)
 	if err != nil {
 		log.Println("Error authenticating user")
-		ctx.JSON(401, newErrorResponse(ErrAuthenticatingUser, "could not authenticate user", nil))
+		ctx.JSON(401, NewErrorResponse(ErrAuthenticatingUser, "could not authenticate user", nil))
 		return
 	}
 
 	token, err := auth.GenerateJWT(user)
 	if err != nil {
 		log.Println("Error generating token")
-		ctx.JSON(500, newErrorResponse(ErrInternal, "could not authenticate user", nil))
+		ctx.JSON(500, NewErrorResponse(ErrInternal, "could not authenticate user", nil))
 		return
 	}
 	ctx.JSON(200, newSuccessResponse(LoginResponse{
@@ -39,6 +40,7 @@ func Login(ctx *gin.Context) {
 			Email:     user.Email,
 			AvatarURL: user.AvatarURL,
 			Provider:  user.Provider,
+			Admin:     user.Admin,
 		},
 	}))
 }
@@ -53,13 +55,13 @@ func Register(ctx *gin.Context) {
 	user, err := auth.CreateLocalUser(db.GetDB(), req.Name, req.Email, req.Password)
 	if err != nil {
 		log.Println("Error creating user", err)
-		ctx.JSON(500, newErrorResponse(ErrInternal, "could not create user", nil))
+		ctx.JSON(500, NewErrorResponse(ErrInternal, "could not create user", nil))
 		return
 	}
 
 	token, err := auth.GenerateJWT(user)
 	if err != nil {
-		ctx.JSON(500, newErrorResponse(ErrInternal, "could not authenticate user", nil))
+		ctx.JSON(500, NewErrorResponse(ErrInternal, "could not authenticate user", nil))
 		return
 	}
 	ctx.JSON(200, newSuccessResponse(LoginResponse{
@@ -70,6 +72,7 @@ func Register(ctx *gin.Context) {
 			Email:     user.Email,
 			AvatarURL: user.AvatarURL,
 			Provider:  user.Provider,
+			Admin:     user.Admin,
 		},
 	}))
 }
@@ -104,19 +107,19 @@ func OAuthCallback(ctx *gin.Context) {
 	if err != nil {
 		var rs *Response
 		if err.Error() == auth.ErrInvalidProvider {
-			rs = newErrorResponse(ErrAuthenticatingUser, "invalid provider", nil)
+			rs = NewErrorResponse(ErrAuthenticatingUser, "invalid provider", nil)
 		} else if err.Error() == auth.ErrMissingCode {
-			rs = newErrorResponse(ErrMissingValue, "missing code", map[string]interface{}{"fieldname": "code"})
+			rs = NewErrorResponse(ErrMissingValue, "missing code", map[string]interface{}{"fieldname": "code"})
 		} else if err.Error() == auth.ErrTokenExchangeFailed {
-			rs = newErrorResponse(ErrAuthenticatingUser, "could not perform code exchange", nil)
+			rs = NewErrorResponse(ErrAuthenticatingUser, "could not perform code exchange", nil)
 		} else if err.Error() == auth.ErrFailedToGetUser {
-			rs = newErrorResponse(ErrAuthenticatingUser, "could not fetch data from user provider", nil)
+			rs = NewErrorResponse(ErrAuthenticatingUser, "could not fetch data from user provider", nil)
 		} else if err.Error() == auth.ErrCreationFailed {
-			rs = newErrorResponse(ErrInternal, "failed to create user", nil)
+			rs = NewErrorResponse(ErrInternal, "failed to create user", nil)
 		} else if err.Error() == auth.ErrJWTSigningFailed {
-			rs = newErrorResponse(ErrInternal, "failed to create Token", nil)
+			rs = NewErrorResponse(ErrInternal, "failed to create Token", nil)
 		} else {
-			rs = newErrorResponse(ErrInternal, "internal error", nil)
+			rs = NewErrorResponse(ErrInternal, "internal error", nil)
 		}
 
 		ctx.JSON(http.StatusInternalServerError, rs)
@@ -131,9 +134,32 @@ func OAuthCallback(ctx *gin.Context) {
 			Email:     user.Email,
 			AvatarURL: user.AvatarURL,
 			Provider:  user.Provider,
+			Admin:     user.Admin,
 		},
 	})
 	ctx.JSON(http.StatusOK, resp)
+}
+
+func Me(ctx *gin.Context) {
+	// get user from token
+	userI, exists := ctx.Get("user")
+	if !exists {
+		ctx.JSON(401, NewErrorResponse(ErrAuthorizingUser, "unauthorized service", nil))
+		return
+	}
+
+	// get user
+	user := userI.(*models.User)
+
+	ctx.JSON(http.StatusOK, newSuccessResponse(User{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		AvatarURL: user.AvatarURL,
+		Provider:  user.Provider,
+		Admin:     user.Admin,
+	}))
+
 }
 
 type User struct {
@@ -142,6 +168,7 @@ type User struct {
 	Email     string `json:"email"`
 	AvatarURL string `json:"avatar"`
 	Provider  string `json:"provider"`
+	Admin     bool   `json:"admin"`
 }
 
 type LoginRequest struct {

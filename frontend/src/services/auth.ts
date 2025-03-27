@@ -2,8 +2,8 @@ import type { User } from '../store/userStore'
 import { fetchJson } from './api'
 
 export const providers = [
-  { name: 'twitch', id: 'twitch' },
-  { name: 'google', id: 'google' },
+  // { name: 'twitch', id: 'twitch' },
+  // { name: 'google', id: 'google' },
   { name: 'github', id: 'github' },
 ]
 
@@ -22,7 +22,12 @@ export const loginLocal = async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     }
-  )
+  ).then((res) => {
+    if (res.token) {
+      localStorage.setItem('token', res.token)
+    }
+    return res
+  })
 }
 
 export const loginOAuth = async (
@@ -31,7 +36,12 @@ export const loginOAuth = async (
 ): Promise<LoginResponse> => {
   return fetchJson<LoginResponse>(
     `${import.meta.env.VITE_APP_SERVER_URL}/auth/oauth/${provider}/callback?code=${code}`
-  )
+  ).then((res) => {
+    if (res.token) {
+      localStorage.setItem('token', res.token)
+    }
+    return res
+  })
 }
 
 export const register = async (

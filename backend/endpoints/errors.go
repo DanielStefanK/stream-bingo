@@ -12,9 +12,10 @@ const (
 	ErrAuthenticatingUser = "AuthenticatingUser"
 	ErrAuthorizingUser    = "AuthorizingUser"
 	ErrMissingValue       = "MissingValue"
+	ErrResourceNotFound   = "ResourceNotFound"
 )
 
 func parseError(ctx *gin.Context) {
 	log.Println("Error parsing request body")
-	ctx.JSON(400, newErrorResponse(ErrInvalidRequestBody, "could not parse request", nil))
+	ctx.JSON(400, NewErrorResponse(ErrInvalidRequestBody, "could not parse request", nil))
 }

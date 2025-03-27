@@ -86,6 +86,8 @@ const NoirX = definePreset(Aura, {
   },
 })
 
+import Tooltip from 'primevue/tooltip'
+
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
@@ -97,6 +99,7 @@ app.use(PrimeVue, {
     },
   },
 })
+app.directive('tooltip', Tooltip)
 app.use(ToastService)
 app.use(router)
 

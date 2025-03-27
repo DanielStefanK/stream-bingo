@@ -21,7 +21,7 @@ func newSuccessResponse(data interface{}) *Response {
 	}
 }
 
-func newErrorResponse(err string, msg string, data map[string]interface{}) *Response {
+func NewErrorResponse(err string, msg string, data map[string]interface{}) *Response {
 	return &Response{
 		Error: &ErrorResponse{
 			Error: err,
